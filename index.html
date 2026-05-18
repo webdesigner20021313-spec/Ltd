@@ -582,12 +582,15 @@ h1, h2, h3, h4 { letter-spacing: -0.025em; line-height: 1.06; margin: 0; font-we
 /* Continuous integration marquee */
 .marquee {
   position: relative;
-  width: 100%;
-  margin: 12px 0;
+  /* Break out of .container padding — full viewport width */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-top: 12px;
+  margin-bottom: 12px;
   overflow: hidden;
-  /* Soft fade gradient at edges so items appear/disappear smoothly */
-  mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  /* Soft fade at screen edges */
+  mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
 }
 .marquee__track {
   display: flex;
@@ -3429,7 +3432,7 @@ body.no-scroll { overflow: hidden; }
             <span class="tag">For fleets of 5–50 vehicles</span>
             <div class="product__title">
               <h3>LLORA Dual</h3>
-              <span class="product__price">from&nbsp;<strong>$299</strong></span>
+              <span class="product__price">from&nbsp;<strong>$249.99</strong></span>
             </div>
             <p>4K front + HD cabin. Driver fatigue and phone detection.</p>
           </header>
@@ -3459,7 +3462,7 @@ body.no-scroll { overflow: hidden; }
             <span class="tag tag--accent">Fleet favorite · Enterprise</span>
             <div class="product__title">
               <h3>LLORA 5-Channel</h3>
-              <span class="product__price">from&nbsp;<strong>$899</strong></span>
+              <span class="product__price">from&nbsp;<strong>$499.99</strong></span>
             </div>
             <p>Full 360° coverage. Stereo vision, ALPR, and Ghost Mode.</p>
           </header>
@@ -3674,10 +3677,10 @@ body.no-scroll { overflow: hidden; }
 
           <div class="pricing-card__price">
             <small class="pricing-card__price-prefix">from</small>
-            <strong>$299</strong>
+            <strong>$249.99</strong>
             <span class="pricing-card__price-suffix">/&nbsp;device</span>
           </div>
-          <p class="pricing-card__sub">Dual at $299 or 5-Channel at $899. Plug-and-play installation included.</p>
+          <p class="pricing-card__sub">Dual at $249.99 or 5-Channel at $499.99. Plug-and-play installation included.</p>
 
           <ul class="pricing-card__list">
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"/></svg> Buy outright or <strong>0% financing</strong> for 12 months</li>
@@ -3798,9 +3801,10 @@ body.no-scroll { overflow: hidden; }
         </div>
         <div class="footer__col">
           <h4>Contact</h4>
-          <a href="tel:+13219997776">+1 (321) 999-7776</a>
-          <a href="mailto:fleet@routeld.com">fleet@routeld.com</a>
-          <a href="https://routeld.com" target="_blank" rel="noopener">routeld.com</a>
+          <a href="tel:+14403753132">440 375-3132</a>
+          <a href="mailto:info@l-lora.com">info@l-lora.com</a>
+          <a href="mailto:sales@l-lora.com">sales@l-lora.com</a>
+          <a href="mailto:support@l-lora.com">support@l-lora.com</a>
         </div>
       </div>
       <div class="footer__bottom">
@@ -3817,25 +3821,22 @@ body.no-scroll { overflow: hidden; }
   (() => {
     'use strict';
 
-    // ====== Smooth section-snap (one wheel = next section, eased) ======
+    // ====== Smooth section-snap (one wheel = next section, constant speed) ======
     (() => {
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
       const small   = window.matchMedia('(max-width: 900px), (max-height: 680px)');
-
-      // Skip on small screens or if user prefers reduced motion
       if (small.matches || reduced.matches) return;
 
       const sections = [...document.querySelectorAll('section')];
       let isAnimating = false;
-      let cooldownUntil = 0;
-      let lastWheelDir = 0;
-      let wheelEnergyResetTimer = null;
+      let lastScrollTime = 0;
 
-      const NAV_OFFSET = 56; // small offset so headers are clear
+      const NAV_OFFSET = 56;
+      const COOLDOWN = 650;       // ms to wait after animation ends
+      const SPEED = 1100;         // px/sec — constant pace on every section
 
-      // Gentle ease-in-out — smooth start and symmetric stop, no snapping at the end
-      const easeInOutCubic = (t) =>
-        t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      // easeOut: instant start, gentle stop → one even tempo
+      const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 
       const getCurrentIdx = () => {
         const y = window.scrollY + NAV_OFFSET + 1;
@@ -3846,22 +3847,24 @@ body.no-scroll { overflow: hidden; }
         return idx;
       };
 
-      const smoothScrollTo = (targetY, duration = 900) => {
+      const smoothScrollTo = (targetY) => {
         isAnimating = true;
         const startY = window.scrollY;
         const distance = targetY - startY;
         if (Math.abs(distance) < 4) { isAnimating = false; return; }
+
+        // Duration proportional to distance → same perceived speed always
+        const duration = Math.min(900, Math.max(450, Math.abs(distance) / SPEED * 1000));
         const startTime = performance.now();
 
         const step = (now) => {
-          const elapsed = now - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-          window.scrollTo(0, startY + distance * easeInOutCubic(progress));
+          const progress = Math.min((now - startTime) / duration, 1);
+          window.scrollTo(0, startY + distance * easeOut(progress));
           if (progress < 1) {
             requestAnimationFrame(step);
           } else {
             isAnimating = false;
-            cooldownUntil = performance.now() + 80;
+            lastScrollTime = performance.now();
           }
         };
         requestAnimationFrame(step);
@@ -3874,35 +3877,20 @@ body.no-scroll { overflow: hidden; }
         smoothScrollTo(sections[nextIdx].offsetTop);
       };
 
-      // Wheel
       window.addEventListener('wheel', (e) => {
-        if (e.ctrlKey) return; // pinch-zoom on trackpad
+        if (e.ctrlKey) return;
+        if (Math.abs(e.deltaY) < 8) return;
         const now = performance.now();
-        if (isAnimating || now < cooldownUntil) {
-          e.preventDefault();
-          return;
-        }
-        if (Math.abs(e.deltaY) < 4) return;
-        // Throttle trackpad inertia: ignore subsequent wheel events of same direction within short window
-        const dir = e.deltaY > 0 ? 1 : -1;
-        if (dir === lastWheelDir && now - cooldownUntil < 400 && cooldownUntil > 0) {
-          e.preventDefault();
-          return;
-        }
-        lastWheelDir = dir;
-        clearTimeout(wheelEnergyResetTimer);
-        wheelEnergyResetTimer = setTimeout(() => { lastWheelDir = 0; }, 200);
-
+        if (isAnimating || now - lastScrollTime < COOLDOWN) { e.preventDefault(); return; }
+        lastScrollTime = now;
         e.preventDefault();
-        navigate(dir);
+        navigate(e.deltaY > 0 ? 1 : -1);
       }, { passive: false });
 
-      // Keyboard
       window.addEventListener('keydown', (e) => {
         if (isAnimating) return;
         if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
-
-        if (e.key === 'PageDown' || e.key === ' ' && !e.shiftKey) {
+        if (e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) {
           e.preventDefault(); navigate(1);
         } else if (e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) {
           e.preventDefault(); navigate(-1);
