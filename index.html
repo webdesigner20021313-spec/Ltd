@@ -4203,48 +4203,7 @@ body.no-scroll { overflow: hidden; }
   (() => {
     'use strict';
 
-    // ====== Section snap scroll (native browser smooth scroll) ======
-    (() => {
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      if (window.matchMedia('(max-width: 900px), (max-height: 680px)').matches) return;
-
-      const sections = [...document.querySelectorAll('section')];
-      let lockedUntil = 0;
-      const LOCK = 1000; // ms — блокируем следующий скрол пока идёт анимация
-
-      const getIdx = () => {
-        const y = window.scrollY + window.innerHeight * 0.3;
-        let i = 0;
-        sections.forEach((s, n) => { if (s.offsetTop <= y) i = n; });
-        return i;
-      };
-
-      const go = (dir) => {
-        const now = performance.now();
-        if (now < lockedUntil) return;
-        const next = Math.max(0, Math.min(sections.length - 1, getIdx() + dir));
-        lockedUntil = now + LOCK;
-        // нативный браузерный скрол — мгновенный старт, аппаратное ускорение
-        sections[next].scrollIntoView({ behavior: 'smooth', block: 'start' });
-      };
-
-      window.addEventListener('wheel', (e) => {
-        if (e.ctrlKey) return;
-        if (e.deltaY === 0) return;
-        const now = performance.now();
-        if (now < lockedUntil) { e.preventDefault(); return; }
-        e.preventDefault();
-        go(e.deltaY > 0 ? 1 : -1);
-      }, { passive: false });
-
-      window.addEventListener('keydown', (e) => {
-        if (/INPUT|TEXTAREA|SELECT/.test(e.target?.tagName)) return;
-        if (e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) { e.preventDefault(); go(1); }
-        else if (e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) { e.preventDefault(); go(-1); }
-        else if (e.key === 'Home') { e.preventDefault(); sections[0].scrollIntoView({ behavior: 'smooth' }); }
-        else if (e.key === 'End')  { e.preventDefault(); sections[sections.length-1].scrollIntoView({ behavior: 'smooth' }); }
-      });
-    })();
+    // Section scroll — free native scroll, no JS locking
 
     // ====== Header on scroll ======
     const header = document.getElementById('header');
